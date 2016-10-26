@@ -52,7 +52,10 @@
     double efficiency = 0.141;   //originalt fra Fabio - altså for 26 detektorer. For 25 stykk (Sunnivas): 0.136
     // oups - read the comment!
     // !!!!! set to 0 --> There is an error, but it's systematic! and we ignore it!
-    double efficiencyErr = 0.0; 
+    double efficiencyErr = 0.02; 
+    if (efficiencyErr!=0){
+        cout << "WARNING: Review the error propagation on this part! - maybe somewhere: assuming this is 0" << endl;
+    }
     
 
 
@@ -303,42 +306,42 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
 
     // Correct for neutron contribution in CACTUS
     // First, find scaling factor for neutron correction function so it contributes to 22% of total count
-    double totalNeutronCount = 0;
-    for(ix=0; ix<dx; ix++){ // Loop over all gamma energies
-        double binCenterEnergy = (x_cal[0] + x_cal[1]*(ix+0.5)); // (lowest bincenter + deltaX * binNumber)
-        if(binCenterEnergy >= Egammamin && binCenterEnergy < Egammamax) { // we only work with energies within this range
-            totalNeutronCount += exp(-2.0*binCenterEnergy*0.001); // See where neutronCorrectionFunctionScaling is declared in this file . Also scale to MeV
-        }
-    }
+    // double totalNeutronCount = 0;
+    // for(ix=0; ix<dx; ix++){ // Loop over all gamma energies
+    //     double binCenterEnergy = (x_cal[0] + x_cal[1]*(ix+0.5)); // (lowest bincenter + deltaX * binNumber)
+    //     if(binCenterEnergy >= Egammamin && binCenterEnergy < Egammamax) { // we only work with energies within this range
+    //         totalNeutronCount += exp(-2.0*binCenterEnergy*0.001); // See where neutronCorrectionFunctionScaling is declared in this file . Also scale to MeV
+    //     }
+    // }
 
-    // We want that neutronCorrectionFunctionScaling*totalNeutronCount = oneMinusNeutronCorrectionFactor*number_of_counts (i.e. 22%)
-    neutronCorrectionFunctionScaling = oneMinusNeutronCorrectionFactor*number_of_counts / totalNeutronCount;
+    // // We want that neutronCorrectionFunctionScaling*totalNeutronCount = oneMinusNeutronCorrectionFactor*number_of_counts (i.e. 22%)
+    // neutronCorrectionFunctionScaling = oneMinusNeutronCorrectionFactor*number_of_counts / totalNeutronCount;
 
-    for(ix=0; ix<dx; ix++){ // Loop over all gamma energies
-        // Gamma energy of this bin
-        double binCenterEnergy = (x_cal[0] + x_cal[1]*(ix+0.5)); // (lowest bincenter + deltaX * binNumber) * 0.001 to convert from keV to MeV
-        double neutronCount = neutronCorrectionFunctionScaling*exp(-2.0*binCenterEnergy*0.001);
-        if(binCenterEnergy >= Egammamin && binCenterEnergy < Egammamax) {
-            double totalCount = 0;
+    // for(ix=0; ix<dx; ix++){ // Loop over all gamma energies
+    //     // Gamma energy of this bin
+    //     double binCenterEnergy = (x_cal[0] + x_cal[1]*(ix+0.5)); // (lowest bincenter + deltaX * binNumber) * 0.001 to convert from keV to MeV
+    //     double neutronCount = neutronCorrectionFunctionScaling*exp(-2.0*binCenterEnergy*0.001);
+    //     if(binCenterEnergy >= Egammamin && binCenterEnergy < Egammamax) {
+    //         double totalCount = 0;
 
-            for(iy=0;iy<dy;iy++) { // Loop over all excitation energies
-                double countInBin = matrix->GetBinContent(ix,iy);
-                totalCount += countInBin;
-            }
+    //         for(iy=0;iy<dy;iy++) { // Loop over all excitation energies
+    //             double countInBin = matrix->GetBinContent(ix,iy);
+    //             totalCount += countInBin;
+    //         }
 
-            double fraction = neutronCount / totalCount;
-            // cout << "E_γ = " << binCenterEnergy << ", totalCount = " << totalCount << " and neutronCount = " << neutronCount << ", fraction = " << fraction << endl;
+    //         double fraction = neutronCount / totalCount;
+    //         // cout << "E_γ = " << binCenterEnergy << ", totalCount = " << totalCount << " and neutronCount = " << neutronCount << ", fraction = " << fraction << endl;
 
-            for(iy=0;iy<dy;iy++) { // Loop over all excitation energies
-                double countInBin = matrix->GetBinContent(ix,iy);
-                // chose on of the two follwing options for neutron correction ("countInBin"):
-                countInBin *= (1.0 - fraction); // Per gamma ray neutron scaling
-                // countInBin *= neutronCorrectionFactor; // Constant neutron scaling
+    //         for(iy=0;iy<dy;iy++) { // Loop over all excitation energies
+    //             double countInBin = matrix->GetBinContent(ix,iy);
+    //             // chose on of the two follwing options for neutron correction ("countInBin"):
+    //             countInBin *= (1.0 - fraction); // Per gamma ray neutron scaling
+    //             // countInBin *= neutronCorrectionFactor; // Constant neutron scaling
 
-                // matrix->SetBinContent(ix,iy,countInBin);
-            }
-        }
-    }
+    //             // matrix->SetBinContent(ix,iy,countInBin);
+    //         }
+    //     }
+    // }
 
     
     cout << "\n F.g. matrix for XXX1 is now filled.\n" << endl;
@@ -438,6 +441,7 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         binmin = yaxis_h2->FindBin(xmin[i]);
         binmax = yaxis_h2->FindBin(xmax[i]);
 
+
         // create the projections with correct title
         sstm.str(std::string());
         sstm << histname_base << " Emin " << xmin[i] << "keV Emax " 
@@ -447,17 +451,97 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         h4[i] = matrix->ProjectionX(histname_result,binmin,binmax);
         std::cout << "Working with bin " << i << " of " << nIntervals << " with bin limits " << binmin << " and " << binmax << std::endl;
 
+
+        ///////////////////////////////////////////////
+        // Rebin with bins of 100 keV
+        double binSize = 100; // 8 keV per bin            
+        int numberOfBins = 14000;
+        double lowestBin = -2008;
+        Double_t binLowerLimits[numberOfBins+1];
+        for(int binIndex=0; binIndex<=numberOfBins; binIndex++) {
+            binLowerLimits[binIndex] = lowestBin + binSize*binIndex; // First will be 0, then 100, then 200 etc
+            if(binLowerLimits[binIndex] > 13800) {
+                numberOfBins = binIndex;
+                break;
+            }
+        }
+
+
+        h4[i] = dynamic_cast<TH1D*>(h4[i]->Rebin(numberOfBins, "", binLowerLimits));
+        for(int binIndex=0; binIndex<h4[i]->GetNbinsX(); binIndex++) {
+            // After rebinning, root might make an error that isn't correct due to averaging.
+            // h4[i]->SetBinError(binIndex, 0.0);
+        }
+        ////////////////////////////////////////////////
+
+
+
+        ////////
+        // The Fission
+        //start to normalize the projections
+        binmin = xaxis_h1->FindBin(xmin[i]);
+        binmax = xaxis_h1->FindBin(xmax[i]);
+        integral = 0.;
+        integralErr = 0.;
+        h1->Sumw2();
+        integral = h1->IntegralAndError(binmin,binmax,integralErr);
+
+        // cout << integral << endl;
+        nFissions[i] = integral;
+        nFissionsErr[i] = integralErr;
+        cout << "nFissions[i]: " << nFissions[i] << " +- " << nFissionsErr[i] << endl;
+        ////////////
+
+        // Further on
         // creating the m_alfna-fiss projection and then loop fill the errors array
         //TH1D *  ProjectionX (const char *name="_px", Int_t firstybin=0, Int_t lastybin=-1, Option_t *option="") const 
         TH1D *m_alfna_fiss_px = m_alfna_fiss->ProjectionX("m_alfna_fiss_px", binmin, binmax);
-        for(int binGamma = 0; binGamma < gammaBins; binGamma++) {
+
+        m_alfna_fiss_px = dynamic_cast<TH1D*>(m_alfna_fiss_px->Rebin(numberOfBins, "", binLowerLimits));
+        for(int binIndex=0; binIndex<m_alfna_fiss_px->GetNbinsX(); binIndex++) {
+            // After rebinning, root might make an error that isn't correct due to averaging.
+            // h4[i]->SetBinError(binIndex, 0.0);
+        }
+        m_alfna_fiss_px->Sumw2();
+        double scalingfactor = 1/efficiency;
+        m_alfna_fiss_px->Scale(1/efficiency);
+
+        double binValue = 0.;
+        double binValue_old = 0;
+        double binErr = 0.;
+
+        for(int binIndex=0; binIndex < numberOfBins; binIndex++) {
+            binGamma = binIndex;
+        // for(int binGamma = 0; binGamma < gammaBins; binGamma++) {
             // cout << "binGamma" << binGamma << endl;
-        std_in_Interval[i][binGamma] = m_alfna_fiss_px->GetBinError(binGamma);
+        std_in_Interval[i][binGamma] = (m_alfna_fiss_px->GetBinError(binGamma));
+        binValue = h4[i]->GetBinContent(binGamma);
+        binValue_old = binValue;
+        binValue = binValue /efficiency /nFissions[i];
+        h4[i]->SetBinContent(binGamma,binValue);
         // and set the error 
         // h4[i]->SetBinError(binGamma,std_in_Interval[i][binGamma]);
-        h4[i]->SetBinError(binGamma,std_in_Interval[i][binGamma]);
+        binErr = std_in_Interval[i][binGamma];
+        if(binValue!=0){  // allow no devision  by 0
+        binErr=  binValue * sqrt( pow(binErr/binValue_old,2.) +  pow(efficiencyErr/efficiency,2.) +pow(nFissionsErr[i]/nFissions[i],2.)   );
+        }
+        else { binErr = 0;}
+        ///////////
+        // Important ASSUMPTION: Set Error=Value if no counts in original spectrum (not unfolded spectrum)
+        if(std_in_Interval[i][binGamma]==0)
+        {
+         binErr=  binValue;   
+        }
+        //////////
+        h4[i]->SetBinError(binGamma,binErr);
         // if (i==3){
-        // cout << "Bin: " << binGamma << ", " << m_alfna_fiss_px->GetBinCenter(binGamma) << "\t" << "Value: " << m_alfna_fiss_px->GetBinContent(binGamma)  << "\t" << "StdErr: " << std_in_Interval[i][binGamma] << endl;
+        
+        // cout << "Bin: " << binGamma << ", " << binLowerLimits[binGamma] << "\t" << "Value: " << m_alfna_fiss_px->GetBinContent(binGamma)  << "\t" << "StdErr: " << std_in_Interval[i][binGamma] << endl;
+        // cout << "Bin: " << binGamma << ", " << binLowerLimits[binGamma] << "\t" << "Value: " << binValue  << "\t" << "BinErr: " << binErr << endl;
+
+        // cout << "Bin: " << binGamma << ", " << m_alfna_fiss_px->GetBinCenter(binGamma) << "\t" << "Value_be: " << m_alfna_fiss_px->GetBinContent(binGamma)  << "\t" << "StdErr: " << std_in_Interval[i][binGamma] << endl;
+        // cout << "Bin: " << binGamma << ", " << m_alfna_fiss_px->GetBinCenter(binGamma) << "\t" << "Value_un: " << binValue  << "\t" << "BinErr: " << binErr << endl;
+        
         // }
         }
 
@@ -465,8 +549,8 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
 
 
         //find number of entries (used for the multiplicity calc.)
-        binmin = xaxis_h1->FindBin(Egammamin);
-        binmax = xaxis_h1->FindBin(Egammamax);
+        binmin = h4[i]->FindBin(Egammamin);
+        binmax = h4[i]->FindBin(Egammamax);
         integral = 0;
         integralErr = 0;
         // IntegralanError computes the integral and puts the error in the varibale "error
@@ -474,23 +558,12 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         integral = h4[i]->IntegralAndError(binmin,binmax,integralErr);
         cout << "Integral (total count) for interval " << i << ": " << integral << "+-" << integralErr << endl;
         // cout << integral << endl;
-        nGammaCoinc[i] = 1/efficiency * integral;
-        nGammaCoincErr[i] = nGammaCoinc[i] * sqrt( pow(efficiencyErr/efficiency,2) +  pow(integralErr/integral,2) );
-        cout << "nGammaCoinc[i]: " << nGammaCoinc[i] << "+-" << nGammaCoincErr[i] << endl;
+        // nGammaCoinc[i] = 1/efficiency * integral;
+        // nGammaCoincErr[i] = nGammaCoinc[i] * sqrt( pow(efficiencyErr/efficiency,2) +  pow(integralErr/integral,2) );
+        // cout << "nGammaCoinc[i]: " << nGammaCoinc[i] << "+-" << nGammaCoincErr[i] << endl;
 
         // WE WILL DO THIS AFTER REBINNING INSTEAD
-        //normalize the projections
-        binmin = xaxis_h1->FindBin(xmin[i]);
-        binmax = xaxis_h1->FindBin(xmax[i]);
-        integral = 0;
-        h1->Sumw2();
-        integral = h1->IntegralAndError(binmin,binmax,integralErr);
-
-        // cout << integral << endl;
-        nFissions[i] = integral;
-        nFissionsErr[i] = integralErr;
-        cout << "nFissions[i]: " << nFissions[i] << "+-" << nFissionsErr[i] << endl;
-
+        
         // old normalization; Now normalization follows further down
         //                    - it will the Multiplicity which is equivalen to the total area!
         // scalingfactor = 0;
@@ -504,8 +577,10 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
 
 
         // calculate the multiplicity (before the gamma correction/extrapolation below the peak)
-        multiplicity[i] = nGammaCoinc[i] / nFissions[i];
-        multiplicityErr[i] = multiplicity[i] * sqrt( pow(nGammaCoincErr[i]/nGammaCoinc[i],2) +  pow(nFissionsErr[i]/nFissions[i],2) );
+        // multiplicity[i] = nGammaCoinc[i] / nFissions[i];
+        // multiplicityErr[i] = multiplicity[i] * sqrt( pow(nGammaCoincErr[i]/nGammaCoinc[i],2) +  pow(nFissionsErr[i]/nFissions[i],2) );
+        multiplicity[i] = integral;
+        multiplicityErr[i] = integralErr;
         cout << "multiplicity[i]: " << multiplicity[i] << "+-" << multiplicityErr[i] << endl;
 
 
@@ -544,27 +619,29 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         //     }
         // }
 
-        // Rebin with bins of 100 keV
-        double binSize = 100; // 8 keV per bin            
-        int numberOfBins = 14000;
-        double lowestBin = -2008;
-        Double_t binLowerLimits[numberOfBins+1];
-        for(int binIndex=0; binIndex<=numberOfBins; binIndex++) {
-            binLowerLimits[binIndex] = lowestBin + binSize*binIndex; // First will be 0, then 100, then 200 etc
-            if(binLowerLimits[binIndex] > 13800) {
-                numberOfBins = binIndex;
-                break;
-            }
-        }
+        // ///////////////////////////////////////////////
+        // // Rebin with bins of 100 keV
+        // double binSize = 8; // 8 keV per bin            
+        // int numberOfBins = 14000;
+        // double lowestBin = -2008;
+        // Double_t binLowerLimits[numberOfBins+1];
+        // for(int binIndex=0; binIndex<=numberOfBins; binIndex++) {
+        //     binLowerLimits[binIndex] = lowestBin + binSize*binIndex; // First will be 0, then 100, then 200 etc
+        //     if(binLowerLimits[binIndex] > 13800) {
+        //         numberOfBins = binIndex;
+        //         break;
+        //     }
+        // }
 
 
-        h4[i] = dynamic_cast<TH1D*>(h4[i]->Rebin(numberOfBins, "", binLowerLimits));
-        for(int binIndex=0; binIndex<h4[i]->GetNbinsX(); binIndex++) {
-            // After rebinning, root might make an error that isn't correct due to averaging.
-            // h4[i]->SetBinError(binIndex, 0.0);
-        }
+        // h4[i] = dynamic_cast<TH1D*>(h4[i]->Rebin(numberOfBins, "", binLowerLimits));
+        // for(int binIndex=0; binIndex<h4[i]->GetNbinsX(); binIndex++) {
+        //     // After rebinning, root might make an error that isn't correct due to averaging.
+        //     // h4[i]->SetBinError(binIndex, 0.0);
+        // }
+        // ///////////////////////
 
-        binmin = 0;
+        binmin = h4[i]->FindBin(0);
         binmax = numberOfBins;
         // Actually, this is the Multiplicity!
         double integralBeforeExtrapolationFixErr     = multiplicityErr[i];
@@ -591,17 +668,29 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         // }
 
 
+        // double integralAfterExtrapolationFixErr =0.;
+        // double integralAfterExtrapolationFix = h4[i]->IntegralAndError(binmin,binmax,integralAfterExtrapolationFixErr);
+        // // integralAfterExtrapolationFixErr = integralAfterExtrapolationFixErr;
+        // // integralAfterExtrapolationFixErr = integralAfterExtrapolationFix 
+        // //                                    * sqrt( pow(integralAfterExtrapolationFixErr/integralAfterExtrapolationFix,2)
+        // //                                            +  pow(efficiencyErr/efficiency,2) 
+        // //                                            +  pow(nFissionsErr[i]/nFissions[i],2));
+        // cout << "integralAfterExtrapolationFix: " << integralAfterExtrapolationFix << "+-" << integralAfterExtrapolationFixErr << endl;
+      
+
+
+
         double relativeErrorExtrapolatedBins = 0.3; // estimated error on the extrapolated Bins
-        double binValue = 0;
-        double binErr = 0;
+        // double binValue = 0;
+        // double binErr = 0;
         int EgammaminBin = h4[i]->FindBin(Egammamin);
         // Set all bins before EGammaMin (threshold) to that value
         for(int binIndex=0; binIndex < EgammaminBin; binIndex++) {
             if(h4[i]->GetBinCenter(binIndex) >= 0) {
-               binValue = h4[i]->GetBinContent(EgammaminBin);
+               binValue = h4[i]->GetBinContent(EgammaminBin); // minimum bin == value that should be copies to all of the others
                h4[i]->SetBinContent(binIndex, binValue);
                binErr = binValue *relativeErrorExtrapolatedBins;
-               h4[i]->SetBinError(i, binValue );
+               h4[i]->SetBinError(binIndex, binErr );
                // h4[i]->SetBinContent(binIndex, maxValue);
             }
         }
@@ -610,44 +699,54 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         // TODO : ERROR FOR TOTAL ENERGY
 
         double totalEnergy = 0;
+        double totalEnergyErr = 0;
         for(int binIndex=0; binIndex < numberOfBins; binIndex++) {
             if(h4[i]->GetBinCenter(binIndex) >= 0) {
-                double value = h4[i]->GetBinContent(binIndex) /efficiency   /nFissions[i]; 
+                double value = h4[i]->GetBinContent(binIndex);
+                double binErr = h4[i]->GetBinError(binIndex);
                 double binEnergy = h4[i]->GetBinCenter(binIndex); 
                 double binSize = binLowerLimits[binIndex+1]-binLowerLimits[binIndex];
                 totalEnergy += binEnergy * value;
+                totalEnergyErr += binEnergy * binErr;
+                // cout << "binEnergy: " << binEnergy << "\t" << "Value: " << value << "\t binErr: " << binErr << endl;
             }
         }
         TotalEnergy[i] = totalEnergy;
-        cout << "Total energy NEW: " << totalEnergy << endl;
+        TotalEnergyErr[i] = totalEnergyErr;
+        cout << "Total energy NEW: " << TotalEnergy[i] << "+-" << TotalEnergyErr[i] << endl;
 
         /***********************************
         * END Extrapolation from max value END
         ***********************************/
-        double integralAfterExtrapolationFixErr;
-        double integralAfterExtrapolationFix = h4[i]->IntegralAndError(binmin,binmax,integralAfterExtrapolationFixErr) /efficiency   /nFissions[i];
-        integralAfterExtrapolationFixErr = integralAfterExtrapolationFixErr /efficiency   /nFissions[i];
-        integralAfterExtrapolationFixErr = integralAfterExtrapolationFix 
-                                           * sqrt( pow(integralAfterExtrapolationFixErr/integralAfterExtrapolationFix,2)
-                                                   +  pow(efficiencyErr/efficiency,2) 
-                                                   +  pow(nFissionsErr[i]/nFissions[i],2));
+        double integralAfterExtrapolationFixErr =0.;
+        double integralAfterExtrapolationFix = h4[i]->IntegralAndError(binmin,binmax,integralAfterExtrapolationFixErr);
+        // integralAfterExtrapolationFixErr = integralAfterExtrapolationFixErr;
+        // integralAfterExtrapolationFixErr = integralAfterExtrapolationFix 
+        //                                    * sqrt( pow(integralAfterExtrapolationFixErr/integralAfterExtrapolationFix,2)
+        //                                            +  pow(efficiencyErr/efficiency,2) 
+        //                                            +  pow(nFissionsErr[i]/nFissions[i],2));
         cout << "integralAfterExtrapolationFix: " << integralAfterExtrapolationFix << "+-" << integralAfterExtrapolationFixErr << endl;
-        
+
         double multiplicityCorrectionFactor = integralAfterExtrapolationFix / integralBeforeExtrapolationFix;
-        cout << "Multiplicity correction factor: " << multiplicityCorrectionFactor << endl;
-        multiplicity[i] *= multiplicityCorrectionFactor;
-        multiplicityErr[i] *= multiplicityCorrectionFactor;
+        // ASSUMPTION: integralBeforeErr << integralAfterErr
+        // however, probably this correction factor itself is not used elsewhere
+        double multiplicityCorrectionFactorErr = multiplicityCorrectionFactor * sqrt( pow(integralAfterExtrapolationFixErr/integralAfterExtrapolationFix,2) ) ;
+        
+        cout << "Multiplicity correction factor: " << multiplicityCorrectionFactor << "+-" << multiplicityCorrectionFactorErr << endl;
+        multiplicity[i] = integralAfterExtrapolationFix;
+        multiplicityErr[i] = integralAfterExtrapolationFixErr;
+        cout << "Multiplicity after: " << multiplicity[i] << "+-" << multiplicityErr[i] << endl;
 
 
         //normalize everything
         binmin = 0;
         binmax = numberOfBins;
-        integral = h4[i]->Integral(binmin,binmax);
-        nFissions[i] = integral;
+        // integral = h4[i]->Integral(binmin,binmax);
+        // nFissions[i] = integral;
         // scalingfactor = 1/integral; //old scaling factor
-        scalingfactor = multiplicity[i]*(1000/binSize)/integral;
+        scalingfactor = (1000/binSize);
         h4[i]->Scale(scalingfactor);
-        cout << "Sunniva AVERAGE = " << h4[i]->GetMean(1) << endl;
+        // cout << "Sunniva AVERAGE = " << h4[i]->GetMean(1) << endl;
         
         // double meanValue = 0;
         // for(int binIndex=0; binIndex<=numberOfBins; binIndex++) {
@@ -656,11 +755,12 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         // }
         // cout << "SunnivaHAX AVERAGE = " << meanValue / (numberOfBins+1) << endl;
 
-        AverageEnergy[i] = h4[i]->GetMean(1);
+        // AverageEnergy[i] = h4[i]->GetMean(1);
 
         //calculate the total energy
         // TotalEnergy[i] = AverageEnergy[i]*multiplicity[i];    (This is calculated before the scaling)
-        cout << "Total energy OLD = " << AverageEnergy[i]*multiplicity[i] << endl << endl;
+        // cout << "Total energy OLD = " << AverageEnergy[i]*multiplicity[i] << endl << endl;
+        cout << "\n" << endl;
     }
 
     // // Multiplicities using the raw matrixes
@@ -991,8 +1091,8 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
 
 
     // TGraphErrors*  h_multi_1 = new TGraphErrors(nIntervals, meanEnergies, multiplicity, 0, multiplicityErr);   //errors tar ikke hensyn til usikkerhet i relative netron contribution
-    // TGraphErrors*  h_multi_1 = new TGraphErrors(nIntervals, meanEnergies, multiplicity, 0, multiplicityErr_neutrons);  //errors med hensyn på relative neutron contribution
-    TGraph*  h_multi_1 = new TGraph(nIntervals, meanEnergies, multiplicity);  //errors med hensyn på relative neutron contribution
+    TGraphErrors*  h_multi_1 = new TGraphErrors(nIntervals, meanEnergies, multiplicity, 0, multiplicityErr);  //errors med hensyn på relative neutron contribution
+    // TGraph*  h_multi_1 = new TGraph(nIntervals, meanEnergies, multiplicity);  //errors med hensyn på relative neutron contribution
     h_multi_1->SetMarkerColor(kRed);
     h_multi_1->SetMarkerStyle(21);
     
@@ -1051,8 +1151,12 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
    TCanvas *c4 = new TCanvas("c4","Average Gamma Energies");
     c4.SetLeftMargin(0.14);
 
+
+// TEST ONLY
+   TGraphErrors *gr = new TGraphErrors(8, meanEnergies, AverageEnergy, 0, 0);
+
    // TGraphErrors *gr = new TGraphErrors(8, meanEnergies, AverageEnergy, 0, AverageEnergyErr);
-    TGraph *gr = new TGraph(nIntervals, meanEnergies, AverageEnergy);    
+    // TGraph *gr = new TGraph(nIntervals, meanEnergies, AverageEnergy);    
    // TGraphErrors *gr = new TGraphErrors(8, meanEnergies, AverageEnergy, 0, 0);    
    gr.GetYaxis().SetRangeUser(0,2100);
    gr->SetTitle("Sunniva er hot");
@@ -1085,8 +1189,8 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
     c5_1.SetLeftMargin(0.14);
 
    // TGraphErrors *gr = new TGraphErrors(8, meanEnergies, TotalEnergy, 0, AverageEnergyErr);   //errors tar ikke hensyn til usikkerhet i relative netron contribution
-   // TGraphErrors *gr = new TGraphErrors(nIntervals, meanEnergies, TotalEnergy, 0, TotalEnergyErr_neutrons); //errors med hensyn på relative neutron contribution
-   TGraph *gr = new TGraph(nIntervals, meanEnergies, TotalEnergy); //errors med hensyn på relative neutron contribution
+   TGraphErrors *gr = new TGraphErrors(nIntervals, meanEnergies, TotalEnergy, 0, TotalEnergyErr); //errors med hensyn på relative neutron contribution
+   // TGraph *gr = new TGraph(nIntervals, meanEnergies, TotalEnergy); //errors med hensyn på relative neutron contribution
    gr.GetYaxis().SetRangeUser(0,15800);
    gr->SetTitle("Sunniva er hot");
    gr->GetYaxis().CenterTitle();
