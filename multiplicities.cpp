@@ -592,12 +592,16 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
 
 
         double relativeErrorExtrapolatedBins = 0.3; // estimated error on the extrapolated Bins
+        double binValue = 0;
+        double binErr = 0;
         int EgammaminBin = h4[i]->FindBin(Egammamin);
         // Set all bins before EGammaMin (threshold) to that value
         for(int binIndex=0; binIndex < EgammaminBin; binIndex++) {
             if(h4[i]->GetBinCenter(binIndex) >= 0) {
-               h4[i]->SetBinContent(binIndex, h4[i]->GetBinContent(EgammaminBin));
-               h4[i]->SetBinError(i, h4[i]*relativeErrorExtrapolatedBins );
+               binValue = h4[i]->GetBinContent(EgammaminBin);
+               h4[i]->SetBinContent(binIndex, binValue);
+               binErr = binValue *relativeErrorExtrapolatedBins;
+               h4[i]->SetBinError(i, binValue );
                // h4[i]->SetBinContent(binIndex, maxValue);
             }
         }
@@ -621,7 +625,14 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         * END Extrapolation from max value END
         ***********************************/
         double integralAfterExtrapolationFixErr;
-        double integralAfterExtrapolationFix = h4[i]->Integral(binmin,binmax) /efficiency   /nFissions[i];
+        double integralAfterExtrapolationFix = h4[i]->IntegralAndError(binmin,binmax,integralAfterExtrapolationFixErr) /efficiency   /nFissions[i];
+        integralAfterExtrapolationFixErr = integralAfterExtrapolationFixErr /efficiency   /nFissions[i];
+        integralAfterExtrapolationFixErr = integralAfterExtrapolationFix 
+                                           * sqrt( pow(integralAfterExtrapolationFixErr/integralAfterExtrapolationFix,2)
+                                                   +  pow(efficiencyErr/efficiency,2) 
+                                                   +  pow(nFissionsErr[i]/nFissions[i],2));
+        cout << "integralAfterExtrapolationFix: " << integralAfterExtrapolationFix << "+-" << integralAfterExtrapolationFixErr << endl;
+        
         double multiplicityCorrectionFactor = integralAfterExtrapolationFix / integralBeforeExtrapolationFix;
         cout << "Multiplicity correction factor: " << multiplicityCorrectionFactor << endl;
         multiplicity[i] *= multiplicityCorrectionFactor;
