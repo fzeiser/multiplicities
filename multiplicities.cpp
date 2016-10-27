@@ -983,7 +983,7 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
 
     // Verbinski->SetMarkerColor(1);
     // Verbinski->SetMarkerSize(20); 
-    Verbinski->Draw("P");
+    // Verbinski->Draw("P");
 
     TLine *line1 = new TLine(Egammamin,0,Egammamin,1e4);
     line1->SetLineStyle(2);
@@ -1022,7 +1022,7 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
     }
     cout << "\n" << endl;
 
-    leg->AddEntry(Verbinski,"Verbinski","ep");
+    // leg->AddEntry(Verbinski,"Verbinski","ep");
 
     leg->SetTextSize(0.04);
     leg->SetTextFont(42);
@@ -1130,13 +1130,20 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
 ///////////////////////////////////////////////////////////////
 
     //EXPERIMENTAL Multiplicities
-    TCanvas *c2 = new TCanvas("c2","Fission Gamma Multiplicities");
-    
-    c2.cd();
-    // c2.SetLogy();
+   Double_t w = 600;
+   Double_t h = 800;
+    TCanvas *c2 = new TCanvas("c2","Fission Gamma Multiplicities",w,h);
+    c2->Divide(1,3,0,0);
+
     c2.SetLeftMargin(0.14);
-    // c2.SetRightMargin(0.01);
-    c2.SetBottomMargin(0.15);
+    c2.SetRightMargin(0.5);
+    c2.SetBottomMargin(0.2);
+    
+    c2.cd(3);
+    // c2.SetLogy();
+    // c2.SetLeftMargin(0.14);
+    // c2.SetRightMargin(0.5);
+    // c2.SetBottomMargin(0.2);
     gStyle->SetOptStat("uo");
 
     
@@ -1152,14 +1159,17 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
     
     h_multi_1.GetXaxis().CenterTitle();
     h_multi_1.GetXaxis().SetTitle("Excitation energy E (keV)");
+    h_multi_1.GetXaxis().SetTitleSize(0.06);
     h_multi_1.GetYaxis().CenterTitle();
-    h_multi_1.GetYaxis().SetTitleOffset(1.0);
-    h_multi_1.GetXaxis().SetTitleOffset(1.3);
-    h_multi_1.GetYaxis().SetTitle("Number of   #gamma-rays (Multiplicities)");
-    h_multi_1.GetYaxis().SetTitleSize(0.04);
-    h_multi_1.GetYaxis().SetLabelSize(0.04);
-    h_multi_1.GetXaxis().SetLabelSize(0.04);
-    h_multi_1.GetYaxis().SetRangeUser(0,12);
+    h_multi_1.GetYaxis().SetTitleOffset(0.7);
+    h_multi_1.GetXaxis().SetTitleOffset(0.8);
+    h_multi_1.GetYaxis().SetTitle("Multiplicity");
+    h_multi_1.GetYaxis().SetTitleSize(0.07);
+    h_multi_1.GetYaxis().SetLabelSize(0.06);
+    h_multi_1.GetXaxis().SetLabelSize(0.06);
+    double ymin = 5.;
+    h_multi_1.GetYaxis().SetRangeUser(5,11.9);
+    // h_multi_1.GetXaxis().SetRangeUser(5,9.9);
 
     // h1cp->Scale(2e-4);    // the scaling here is arbitrary!
     // h1cp->Draw("same"); 
@@ -1177,10 +1187,10 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
     theory_multiplicity_graph->Draw("P");
     theory_multiplicity_graph->Draw("L");
 
-   grlow->SetLineStyle(2);
+   grlow->SetLineStyle(4);
    grlow->Draw("same");
 
-   grup->SetLineStyle(2);
+   grup->SetLineStyle(4);
    grup->Draw("same");
 
     // theory_multiplicity_graph->SetMarkerColor(kBlue);
@@ -1200,17 +1210,39 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
     leg->SetTextFont(42);
     leg->Draw();
 
-    c2->Update();
+
+
+
+////////////
+    TLine *line1 = new TLine(FissBar,ymin,FissBar,1e5);
+    // line1->SetLineStyle(2);
+    line1->SetLineWidth(1);
+    line1->Draw();
+
+    TLine *line4 = new TLine(Sn,ymin,Sn,1e5);
+    // line4->SetLineStyle(2);
+    line4->SetLineWidth(1);
+    line4->Draw();
+////////////
+    // TLatex t;
+    // t.SetTextSize(0.03);
+    // t.DrawLatex(Sn-200,90,"S_{n}");
+    // t.DrawLatex(FissBar-300,90,"B_{F}");
+///////////
+
+
+    // c2->Update();
     
-    c2->Print("multiplicitiesB.pdf");
+    // c2->Print("multiplicitiesB.pdf");
 
     ///////////////////////////////////////////////////////
     // AVERAGE gamma energy as function of excitation energy
 //     ///////////////////////////////////////////////////////
 
-   TCanvas *c4 = new TCanvas("c4","Average Gamma Energies");
-    c4.SetLeftMargin(0.14);
-
+   // TCanvas *c4 = new TCanvas("c4","Average Gamma Energies");
+    // c4.SetLeftMargin(0.14);
+    // c1->Divide(1,1,0,0);
+c2.cd(2);
 
 // TEST ONLY
     TGraphErrors *gr = new TGraphErrors(nIntervals, meanEnergies, AverageEnergy, 0, AverageEnergyErr);
@@ -1220,20 +1252,22 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
    // TGraphErrors *gr = new TGraphErrors(8, meanEnergies, AverageEnergy, 0, AverageEnergyErr);
     // TGraph *gr = new TGraph(nIntervals, meanEnergies, AverageEnergy);    
    // TGraphErrors *gr = new TGraphErrors(8, meanEnergies, AverageEnergy, 0, 0);    
-   gr.GetYaxis().SetRangeUser(0,2100);
+   gr.GetYaxis().SetRangeUser(705,1380);
    gr->SetTitle("Sunniva er hot");
    gr->GetYaxis().CenterTitle();
-    gr->GetYaxis().SetTitleOffset(1.3);
-   gr->GetYaxis().SetTitle("Average   #gamma-energy (keV)");
-   gr->GetYaxis().SetTitleSize(0.04);
+   gr->GetYaxis().SetTitleOffset(0.7);
+   gr->GetYaxis().SetTitle("Average #gamma-energy (keV)");
+   gr->GetYaxis().SetTitleSize(0.07);
+    gr.GetYaxis().SetLabelSize(0.06);
+    gr.GetXaxis().SetLabelSize(0.06);
    gr->SetMarkerColor(kRed);
    gr->SetMarkerStyle(21);
    gr->Draw("AP");
 
-   grlow->SetLineStyle(2);
+   grlow->SetLineStyle(4);
    grlow->Draw("same");
 
-   grup->SetLineStyle(2);
+   grup->SetLineStyle(4);
    grup->Draw("same");
 
 
@@ -1246,7 +1280,19 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
      theory_energy_av_graph->Draw("P");
     theory_energy_av_graph->Draw("L");
 
-   c4->Print("AvgE_gamma.pdf");
+    ////////////
+    TLine *line1 = new TLine(FissBar,0,FissBar,1e5);
+    // line1->SetLineStyle(2);
+    line1->SetLineWidth(1);
+    line1->Draw();
+
+    TLine *line4 = new TLine(Sn,0,Sn,1e5);
+    // line4->SetLineStyle(2);
+    line4->SetLineWidth(1);
+    line4->Draw();
+////////////
+
+   // c4->Print("AvgE_gamma.pdf");
 //     TCanvas *c4 = new TCanvas("c4","Average Gamma Energies",900,600);
 
 
@@ -1255,29 +1301,31 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
     // TOTAL gamma energy as function of excitation energy
 //     ///////////////////////////////////////////////////////
 
-   TCanvas *c5_1 = new TCanvas("c5_1","Total Gamma Energies");
-    c5_1.SetLeftMargin(0.14);
-
+   // TCanvas *c5_1 = new TCanvas("c5_1","Total Gamma Energies");
+   //  c5_1.SetLeftMargin(0.14);
+c2.cd(1);
    // TGraphErrors *gr = new TGraphErrors(8, meanEnergies, TotalEnergy, 0, AverageEnergyErr);   //errors tar ikke hensyn til usikkerhet i relative netron contribution
    TGraphErrors *gr = new TGraphErrors(nIntervals, meanEnergies, TotalEnergy, 0, TotalEnergyErr); //errors med hensyn på relative neutron contribution
    TGraph *grlow = new TGraph(nIntervals, meanEnergies, TotalEnergyLow);
    TGraph *grup = new TGraph(nIntervals,  meanEnergies, TotalEnergyUp);
 
    // TGraph *gr = new TGraph(nIntervals, meanEnergies, TotalEnergy); //errors med hensyn på relative neutron contribution
-   gr.GetYaxis().SetRangeUser(0,15800);
+   gr.GetYaxis().SetRangeUser(5.01e3,9.9e3);
    gr->SetTitle("Sunniva er hot");
    gr->GetYaxis().CenterTitle();
-   gr->GetYaxis().SetTitleOffset(1.3);
+   gr->GetYaxis().SetTitleOffset(0.7);
    gr->GetYaxis().SetTitle("Total   #gamma-energy (keV)");
-   gr->GetYaxis().SetTitleSize(0.04);
+   gr->GetYaxis().SetTitleSize(0.07);
+       gr.GetYaxis().SetLabelSize(0.06);
+    gr.GetXaxis().SetLabelSize(0.06);
    gr->SetMarkerColor(kRed);
    gr->SetMarkerStyle(21);
    gr->Draw("AP");
 
-   grlow->SetLineStyle(2);
+   grlow->SetLineStyle(4);
    grlow->Draw("same");
 
-   grup->SetLineStyle(2);
+   grup->SetLineStyle(4);
    grup->Draw("same");
 
    theory_energy_tot_graph->SetMarkerStyle(21);
@@ -1290,15 +1338,31 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
     theory_energy_tot_graph->Draw("L");
 
 
-    TLegend *leg = new TLegend( 0.25,0.70,0.9,0.85);
+    TLegend *leg = new TLegend(0.64,0.10,0.99,0.37);
+    leg.SetBorderSize(0);
+    leg.SetFillStyle(0);
     leg.SetBorderSize(2);
     leg->SetTextColor(kRed);
-    leg->SetTextSize(0.025);
-    leg->AddEntry(gr,"Experimental data","P");
-    leg->AddEntry(theory_energy_tot_graph,"Theory, C. Schmitt, private communication","L");
+    leg->SetTextSize(0.07);
+    leg->AddEntry(gr,"Experimental data","ep");
+    leg->AddEntry(theory_energy_tot_graph,"GEF","lp");
+    // leg->AddEntry(grlow,"Error band (incl. systematic)","l");
     leg->Draw();
 
-    c5_1->Print("TotalE_Gamma.pdf");
+    ////////////
+    TLine *line1 = new TLine(FissBar,0,FissBar,1e5);
+    // line1->SetLineStyle(2);
+    line1->SetLineWidth(1);
+    line1->Draw();
+
+    TLine *line4 = new TLine(Sn,0,Sn,1e5);
+    // line4->SetLineStyle(2);
+    line4->SetLineWidth(1);
+    line4->Draw();
+////////////
+
+    // c5_1->Print("TotalE_Gamma.pdf");
+    c2->Print("Together.pdf");
 // //   c1_2.cd();
 //     c4.SetLeftMargin(0.14);
 // //     c1_2.SetRightMargin(0.01);
@@ -1481,7 +1545,8 @@ TGraph *GEF = new TGraph(nPoints,energy1,spectrum1);
     h4[nSelect].GetXaxis().CenterTitle();
     h4[nSelect].GetXaxis().SetTitle("E(NaI) [keV]");
     h4[nSelect].GetYaxis().CenterTitle();
-    h4[nSelect].GetYaxis().SetTitleOffset(1.2);
+    h4[nSelect].GetXaxis().SetTitleOffset(0.9);
+    h4[nSelect].GetYaxis().SetTitleOffset(1);
 //    h2[0].GetXaxis().SetLabelOffset(1.4);
 
     h4[nSelect].GetYaxis().SetTitle("Counts/fission*MeV");
@@ -1493,7 +1558,7 @@ TGraph *GEF = new TGraph(nPoints,energy1,spectrum1);
     h4[nSelect].GetYaxis().SetRangeUser(0.0001,10);
     h4[nSelect].SetLineColor(1);
     // h4[0].SetLineWidth(2);
-     gStyle->SetOptStat(0);
+    gStyle->SetOptStat(0);
     h4[nSelect].Draw();
 
 
@@ -1503,8 +1568,8 @@ TGraph *GEF = new TGraph(nPoints,energy1,spectrum1);
     // Verbinski->SetLineStyle(2);
     Verbinski->SetMarkerSize(0.8); 
     // Verbinski->SetLineWidth(2.8); 
-    Verbinski->SetMarkerColor(kBlue); 
-    Verbinski->SetLineColor(kBlue+2);
+    Verbinski->SetMarkerColor(kYellow+3); 
+    Verbinski->SetLineColor(kYellow+3);
 
     // Verbinski->SetMarkerColor(1);
     // Verbinski->SetMarkerSize(20); 
@@ -1512,6 +1577,7 @@ TGraph *GEF = new TGraph(nPoints,energy1,spectrum1);
     /////////////////
 
     GEF->SetMarkerStyle(22);
+    GEF->SetMarkerColor(kBlue+2);
     GEF->SetMarkerSize(1);
     // GEF->SetMarkerColor(kGreen);
     GEF->Draw("P");
