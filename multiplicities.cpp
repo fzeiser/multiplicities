@@ -455,7 +455,7 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
 
         ///////////////////////////////////////////////
         // Rebin with bins of 100 keV
-        double binSize = 90; // 8 keV per bin            
+        double binSize = 90.; // 8 keV per bin            
         int numberOfBins = 14000;
         double lowestBin = -2008;
         Double_t binLowerLimits[numberOfBins+1];
@@ -807,7 +807,7 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
 
         // // At the end of the loop: All calculations should be done;
         // // then we copy the h4_err on h4 thus that we can use the same drawing options as before
-        // h4[i] = h4_err[i];
+        h4[i] = h4_err[i];
         cout << "\n" << endl;
     }
 
