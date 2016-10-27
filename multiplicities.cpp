@@ -52,7 +52,7 @@
     double efficiency = 0.141;   //originalt fra Fabio - altså for 26 detektorer. For 25 stykk (Sunnivas): 0.136
     // oups - read the comment!
     // !!!!! set to 0 --> There is an error, but it's systematic! and we ignore it!
-    double efficiencyErr = 0.0002; 
+    double efficiencyErr = 0.01; 
     if (efficiencyErr!=0){
         cout << "WARNING: Review the error propagation on this part! - maybe somewhere: assuming this is 0" << endl;
     }
@@ -1556,7 +1556,7 @@ TGraph *GEF = new TGraph(nPoints,energy1,spectrum1);
     h4[nSelect].GetYaxis().SetLabelSize(0.053);
     h4[nSelect].GetXaxis().SetRangeUser(0,15e3);
     h4[nSelect].GetYaxis().SetRangeUser(0.0001,10);
-    h4[nSelect].SetLineColor(1);
+    h4[nSelect].SetLineColor(kRed);
     // h4[0].SetLineWidth(2);
     gStyle->SetOptStat(0);
     h4[nSelect].Draw();
@@ -1568,8 +1568,8 @@ TGraph *GEF = new TGraph(nPoints,energy1,spectrum1);
     // Verbinski->SetLineStyle(2);
     Verbinski->SetMarkerSize(0.8); 
     // Verbinski->SetLineWidth(2.8); 
-    Verbinski->SetMarkerColor(kYellow+3); 
-    Verbinski->SetLineColor(kYellow+3);
+    Verbinski->SetMarkerColor(kBlack); 
+    Verbinski->SetLineColor(kBlack);
 
     // Verbinski->SetMarkerColor(1);
     // Verbinski->SetMarkerSize(20); 
