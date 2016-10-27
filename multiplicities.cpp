@@ -458,10 +458,11 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         double binSize = 90.; // 8 keV per bin            
         int numberOfBins = 14000;
         double lowestBin = -2008;
+        // double lowestBin = 0;
         Double_t binLowerLimits[numberOfBins+1];
         for(int binIndex=0; binIndex<=numberOfBins; binIndex++) {
             binLowerLimits[binIndex] = lowestBin + binSize*binIndex; // First will be 0, then 100, then 200 etc
-            if(binLowerLimits[binIndex] > 13800) {
+            if(binLowerLimits[binIndex] > numberOfBins-binSize) {
                 numberOfBins = binIndex;
                 break;
             }
@@ -692,6 +693,7 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         // double binErr = 0;
         int EgammaminBin = h4[i]->FindBin(Egammamin);
         int n_binChanged = EgammaminBin - binmin;
+        // cout << "binmin" << binmin << endl;
         cout << "EgammaminBin - binmin: " << EgammaminBin-binmin << endl;
         // Set all bins before EGammaMin (threshold) to that value
         for(int binIndex=0; binIndex < EgammaminBin; binIndex++) {
@@ -782,6 +784,7 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         // + not needed before - because there we sum over the bins, so it's good to give values in cnt/bin
         scalingfactor = (1000/binSize);
         h4[i]->Scale(scalingfactor);
+        h4_err[i]->Scale(scalingfactor);
         // cout << "Sunniva AVERAGE = " << h4[i]->GetMean(1) << endl;
         
         // double meanValue = 0;
