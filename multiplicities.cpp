@@ -52,7 +52,7 @@
     double efficiency = 0.141;   //originalt fra Fabio - altså for 26 detektorer. For 25 stykk (Sunnivas): 0.136
     // oups - read the comment!
     // !!!!! set to 0 --> There is an error, but it's systematic! and we ignore it!
-    double efficiencyErr = 0.02; 
+    double efficiencyErr = 0.0002; 
     if (efficiencyErr!=0){
         cout << "WARNING: Review the error propagation on this part! - maybe somewhere: assuming this is 0" << endl;
     }
@@ -60,10 +60,10 @@
 
 
     float nGammaCoinc[nIntervals],nGammaCoincErr[nIntervals],
-          nFissions[nIntervals], nFissionsErr[nIntervals],
-          multiplicity[nIntervals], multiplicityErr[nIntervals], 
-          AverageEnergy[nIntervals], AverageEnergyErr[nIntervals], 
-          TotalEnergy[nIntervals], TotalEnergyErr[nIntervals],
+          nFissions[nIntervals],  nFissionsErr[nIntervals],
+          multiplicity[nIntervals],  multiplicityErr[nIntervals],  multiplicityLow[nIntervals],  multiplicityUp[nIntervals],
+          AverageEnergy[nIntervals], AverageEnergyErr[nIntervals], AverageEnergyLow[nIntervals], AverageEnergyUp[nIntervals],
+          TotalEnergy[nIntervals],   TotalEnergyErr[nIntervals],   TotalEnergyLow[nIntervals],   TotalEnergyUp[nIntervals],
           meanEnergies[nIntervals];
           
 
@@ -427,6 +427,7 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
     float xinterval;
     double integral, integralErr, scalingfactor;
     TH1D *h4[nIntervals];
+    TH1D *h4_err[nIntervals];
     string histname_base = "Fiss. coinc.";
     string string_result;
     char* histname_result;
@@ -454,7 +455,7 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
 
         ///////////////////////////////////////////////
         // Rebin with bins of 100 keV
-        double binSize = 100; // 8 keV per bin            
+        double binSize = 90; // 8 keV per bin            
         int numberOfBins = 14000;
         double lowestBin = -2008;
         Double_t binLowerLimits[numberOfBins+1];
@@ -648,6 +649,14 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         double integralBeforeExtrapolationFix        = multiplicity[i];
         // double integralBeforeExtrapolationFix = h4[i]->Integral(binmin,binmax); 
 
+
+
+
+
+
+
+
+
         /***********************************
         * BEGIN Extrapolation from max value BEGIN
         * (Fjern hvis faktisk spekter skal vises)
@@ -677,20 +686,26 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         // //                                            +  pow(nFissionsErr[i]/nFissions[i],2));
         // cout << "integralAfterExtrapolationFix: " << integralAfterExtrapolationFix << "+-" << integralAfterExtrapolationFixErr << endl;
       
-
-
-
+        TH1D *h4_err[i] = dynamic_cast<TH1D*>( h4[i]->Clone() ); 
         double relativeErrorExtrapolatedBins = 0.3; // estimated error on the extrapolated Bins
         // double binValue = 0;
         // double binErr = 0;
         int EgammaminBin = h4[i]->FindBin(Egammamin);
+        int n_binChanged = EgammaminBin - binmin;
+        cout << "EgammaminBin - binmin: " << EgammaminBin-binmin << endl;
         // Set all bins before EGammaMin (threshold) to that value
         for(int binIndex=0; binIndex < EgammaminBin; binIndex++) {
             if(h4[i]->GetBinCenter(binIndex) >= 0) {
+               // n_binChanged = EgammaminBin - binIndex;
+               // cout << n_binChanged << n_binChanged << endl;
                binValue = h4[i]->GetBinContent(EgammaminBin); // minimum bin == value that should be copies to all of the others
+               h4_err[i]->SetBinContent(binIndex, binValue);
                h4[i]->SetBinContent(binIndex, binValue);
-               binErr = binValue *relativeErrorExtrapolatedBins;
-               h4[i]->SetBinError(binIndex, binErr );
+               binErr = 0;
+               h4[i]->SetBinError(binIndex, binErr);
+               binErr = sqrt(n_binChanged) * binValue *relativeErrorExtrapolatedBins;   // n_binChanged is
+               h4_err[i]->SetBinError(binIndex, binErr);                          // necessary to get the error cal. right for summations/integrals
+                                                                                  // on the error band
                // h4[i]->SetBinContent(binIndex, maxValue);
             }
         }
@@ -700,19 +715,27 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
 
         double totalEnergy = 0;
         double totalEnergyErr = 0;
+        double totalEnergyErrUp = 0;
         for(int binIndex=0; binIndex < numberOfBins; binIndex++) {
-            if(h4[i]->GetBinCenter(binIndex) >= 0) {
+            if(h4[i]->GetBinCenter(binIndex) >= 0) {                            // TODO: This or rebin such that 0 is smallest bin?!
                 double value = h4[i]->GetBinContent(binIndex);
                 double binErr = h4[i]->GetBinError(binIndex);
                 double binEnergy = h4[i]->GetBinCenter(binIndex); 
-                double binSize = binLowerLimits[binIndex+1]-binLowerLimits[binIndex];
+                // double binSize = binLowerLimits[binIndex+1]-binLowerLimits[binIndex];
                 totalEnergy += binEnergy * value;
-                totalEnergyErr += binEnergy * binErr;
+                totalEnergyErr += pow( binEnergy * binErr, 2.);
+
+                binErr = h4_err[i]->GetBinError(binIndex);
+                totalEnergyErrUp += pow( binEnergy * binErr, 2.);
                 // cout << "binEnergy: " << binEnergy << "\t" << "Value: " << value << "\t binErr: " << binErr << endl;
             }
         }
         TotalEnergy[i] = totalEnergy;
-        TotalEnergyErr[i] = totalEnergyErr;
+        TotalEnergyErr[i] = sqrt(totalEnergyErr);
+        totalEnergyErrUp = sqrt(totalEnergyErrUp);
+        TotalEnergyUp[i] = totalEnergy + totalEnergyErrUp;
+        TotalEnergyLow[i] = totalEnergy - totalEnergyErrUp;
+        cout << "TotalEnergyUp/Low:" << TotalEnergyUp[i] << "\t" << TotalEnergyLow[i] << endl;
         cout << "Total energy NEW: " << TotalEnergy[i] << "+-" << TotalEnergyErr[i] << endl;
 
         /***********************************
@@ -725,6 +748,10 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         //                                    * sqrt( pow(integralAfterExtrapolationFixErr/integralAfterExtrapolationFix,2)
         //                                            +  pow(efficiencyErr/efficiency,2) 
         //                                            +  pow(nFissionsErr[i]/nFissions[i],2));
+
+        double integralErrUp =0.;
+        h4_err[i]->IntegralAndError(binmin,binmax,integralErrUp);
+
         cout << "integralAfterExtrapolationFix: " << integralAfterExtrapolationFix << "+-" << integralAfterExtrapolationFixErr << endl;
 
         double multiplicityCorrectionFactor = integralAfterExtrapolationFix / integralBeforeExtrapolationFix;
@@ -735,6 +762,10 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         cout << "Multiplicity correction factor: " << multiplicityCorrectionFactor << "+-" << multiplicityCorrectionFactorErr << endl;
         multiplicity[i] = integralAfterExtrapolationFix;
         multiplicityErr[i] = integralAfterExtrapolationFixErr;
+
+        multiplicityUp[i]  = multiplicity[i] + integralErrUp;
+        multiplicityLow[i] = multiplicity[i] - integralErrUp;
+
         cout << "Multiplicity after: " << multiplicity[i] << "+-" << multiplicityErr[i] << endl;
 
 
@@ -743,7 +774,12 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         binmax = numberOfBins;
         // integral = h4[i]->Integral(binmin,binmax);
         // nFissions[i] = integral;
-        // scalingfactor = 1/integral; //old scaling factor
+        // scalingfactor = 1/integral; //old scaling 
+
+        // need this scaling here (!) as we want to transfer the plot from
+        // cnt/(binsize*fiss) --*S--> cnt/(MeV*fiss)
+        // so S = MeV/binsize, or 1000 * keV/binsize, with binsize in keV
+        // + not needed before - because there we sum over the bins, so it's good to give values in cnt/bin
         scalingfactor = (1000/binSize);
         h4[i]->Scale(scalingfactor);
         // cout << "Sunniva AVERAGE = " << h4[i]->GetMean(1) << endl;
@@ -754,14 +790,27 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         //     meanValue += h4[i]->GetBinContent(binIndex) * h4[i]->GetBinCenter(binIndex);
         // }
         // cout << "SunnivaHAX AVERAGE = " << meanValue / (numberOfBins+1) << endl;
+        AverageEnergy[i]    = h4[i]->GetMean(1);
+        AverageEnergyErr[i] = h4[i]->GetMeanError(1);
+        double avEnErrUp    = h4_err[i]->GetMeanError(1);
+        AverageEnergyUp[i]  = AverageEnergy[i] + avEnErrUp;
+        AverageEnergyLow[i] = AverageEnergy[i] - avEnErrUp;
+        cout << "AverageEnergy: " << AverageEnergy[i] << "+-" << AverageEnergyErr[i] << endl;
 
-        // AverageEnergy[i] = h4[i]->GetMean(1);
+        // AverageEnergy[i]    = h4_err[i]->GetMean(1);
+        // AverageEnergyErr[i] = h4_err[i]->GetMeanError(1);
+        // cout << "AverageEnergy: " << AverageEnergy[i] << "+-" << AverageEnergyErr[i] << endl;
 
         //calculate the total energy
         // TotalEnergy[i] = AverageEnergy[i]*multiplicity[i];    (This is calculated before the scaling)
         // cout << "Total energy OLD = " << AverageEnergy[i]*multiplicity[i] << endl << endl;
+
+        // // At the end of the loop: All calculations should be done;
+        // // then we copy the h4_err on h4 thus that we can use the same drawing options as before
+        // h4[i] = h4_err[i];
         cout << "\n" << endl;
     }
+
 
     // // Multiplicities using the raw matrixes
     // float n_hex, n_alfna_py, n_multi, nsize, nlength, nvalue;
@@ -1092,6 +1141,8 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
 
     // TGraphErrors*  h_multi_1 = new TGraphErrors(nIntervals, meanEnergies, multiplicity, 0, multiplicityErr);   //errors tar ikke hensyn til usikkerhet i relative netron contribution
     TGraphErrors*  h_multi_1 = new TGraphErrors(nIntervals, meanEnergies, multiplicity, 0, multiplicityErr);  //errors med hensyn på relative neutron contribution
+    TGraph *grlow = new TGraph(nIntervals, meanEnergies, multiplicityLow);
+    TGraph *grup = new TGraph(nIntervals,  meanEnergies, multiplicityUp);
     // TGraph*  h_multi_1 = new TGraph(nIntervals, meanEnergies, multiplicity);  //errors med hensyn på relative neutron contribution
     h_multi_1->SetMarkerColor(kRed);
     h_multi_1->SetMarkerStyle(21);
@@ -1123,6 +1174,12 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
     theory_multiplicity_graph->Draw("P");
     theory_multiplicity_graph->Draw("L");
 
+   grlow->SetLineStyle(2);
+   grlow->Draw("same");
+
+   grup->SetLineStyle(2);
+   grup->Draw("same");
+
     // theory_multiplicity_graph->SetMarkerColor(kBlue);
     
 
@@ -1153,7 +1210,9 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
 
 
 // TEST ONLY
-   TGraphErrors *gr = new TGraphErrors(8, meanEnergies, AverageEnergy, 0, 0);
+    TGraphErrors *gr = new TGraphErrors(nIntervals, meanEnergies, AverageEnergy, 0, AverageEnergyErr);
+    TGraph *grlow = new TGraph(nIntervals, meanEnergies, AverageEnergyLow);
+    TGraph *grup = new TGraph(nIntervals,  meanEnergies, AverageEnergyUp);
 
    // TGraphErrors *gr = new TGraphErrors(8, meanEnergies, AverageEnergy, 0, AverageEnergyErr);
     // TGraph *gr = new TGraph(nIntervals, meanEnergies, AverageEnergy);    
@@ -1167,6 +1226,14 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
    gr->SetMarkerColor(kRed);
    gr->SetMarkerStyle(21);
    gr->Draw("AP");
+
+   grlow->SetLineStyle(2);
+   grlow->Draw("same");
+
+   grup->SetLineStyle(2);
+   grup->Draw("same");
+
+
     theory_energy_av_graph->SetMarkerStyle(21);
     theory_energy_av_graph->SetLineStyle(2);
     theory_energy_av_graph->SetMarkerSize(0.8); 
@@ -1190,6 +1257,9 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
 
    // TGraphErrors *gr = new TGraphErrors(8, meanEnergies, TotalEnergy, 0, AverageEnergyErr);   //errors tar ikke hensyn til usikkerhet i relative netron contribution
    TGraphErrors *gr = new TGraphErrors(nIntervals, meanEnergies, TotalEnergy, 0, TotalEnergyErr); //errors med hensyn på relative neutron contribution
+   TGraph *grlow = new TGraph(nIntervals, meanEnergies, TotalEnergyLow);
+   TGraph *grup = new TGraph(nIntervals,  meanEnergies, TotalEnergyUp);
+
    // TGraph *gr = new TGraph(nIntervals, meanEnergies, TotalEnergy); //errors med hensyn på relative neutron contribution
    gr.GetYaxis().SetRangeUser(0,15800);
    gr->SetTitle("Sunniva er hot");
@@ -1200,6 +1270,12 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
    gr->SetMarkerColor(kRed);
    gr->SetMarkerStyle(21);
    gr->Draw("AP");
+
+   grlow->SetLineStyle(2);
+   grlow->Draw("same");
+
+   grup->SetLineStyle(2);
+   grup->Draw("same");
 
    theory_energy_tot_graph->SetMarkerStyle(21);
    theory_energy_tot_graph->SetLineStyle(2);
@@ -1481,5 +1557,9 @@ TGraph *GEF = new TGraph(nPoints,energy1,spectrum1);
   // fclose(out_file);
   // cout << "Output complete" << endl;
 
+// cout << "\n" << endl;
+// for(int i=0;i<nIntervals;i++){
+//     cout << AverageEnergy[i] << "\t" << TotalEnergy[i] << endl;
+// }
 
 }
