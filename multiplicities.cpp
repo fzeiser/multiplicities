@@ -867,7 +867,7 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
     c1_1.SetBottomMargin(0.15);
 
     h1.GetXaxis().CenterTitle();
-    h1.GetXaxis().SetTitle("Excitation energy E (keV)");
+    h1.GetXaxis().SetTitle("Excitation energy E_{x} [keV]");
     h1.GetYaxis().CenterTitle();
     h1.GetYaxis().SetTitleOffset(1.1);
     h1.GetXaxis().SetTitleOffset(1.4);
@@ -940,27 +940,31 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
     c1_1->Print("multiplicitiesA1.pdf");
 
 
-    TCanvas *c1_2 = new TCanvas("c1_2","Fission Gamma Spectra");
+    TCanvas *c1_2 = new TCanvas("c1_2","Fission Gamma Spectra_All");
     // c1->Divide(1,1,0,0);
     
     c1_2.cd();
     c1_2.SetLogy();
-    c1_2.SetLeftMargin(0.14);
+    c1_2.SetLeftMargin(0.13);
     c1_2.SetRightMargin(0.01);
-    c1_2.SetBottomMargin(0.14);
+    c1_2.SetBottomMargin(0.15);
     h4[0].GetXaxis().CenterTitle();
-    h4[0].GetXaxis().SetTitle("E(NaI) [keV]");
+    h4[0].GetXaxis().SetTitle("E_{#gamma} [keV]");
+    h4[0].GetXaxis().SetTitleSize(0.06);
+    h4[0].GetXaxis().SetTitleOffset(1.1);
     h4[0].GetYaxis().CenterTitle();
-    h4[0].GetYaxis().SetTitleOffset(1.2);
+    
 //    h4[0].GetXaxis().SetLabelOffset(1.4);
 
-    h4[0].GetYaxis().SetTitle("Counts/fission*MeV");
-    h4[0].GetXaxis().SetTitleSize(0.053);
+    h4[0].GetYaxis().SetTitle("Photons/Fission*MeV");
+    h4[0].GetYaxis().SetTitleSize(0.07);
+    h4[0].GetYaxis().SetTitleOffset(1.2);
     h4[0].GetYaxis().SetTitleSize(0.053);
     h4[0].GetXaxis().SetLabelSize(0.053);
     h4[0].GetYaxis().SetLabelSize(0.053);
     h4[0].GetXaxis().SetRangeUser(0,15e3);
-    h4[0].GetYaxis().SetRangeUser(0.0001,10);
+    h4[0].GetXaxis().SetRangeUser(0,13800);
+    h4[0].GetYaxis().SetRangeUser(0.00017,10);
     h4[0].SetLineColor(2);
     // h4[0].SetLineWidth(2);
      gStyle->SetOptStat(0);
@@ -1015,7 +1019,7 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
         // xmax[i] = xmin[i] + xinterval;
 
         sstm.str(std::string());
-        sstm << " E_x = " << std::setprecision(3) << xmin[i]/1000 << " - " << xmax[i]/1000 <<" MeV";
+        sstm << " E_{x} = " << std::setprecision(3) << xmin[i]/1000 << " - " << xmax[i]/1000 <<" MeV";
         string_result = sstm.str();
         histname_result = string_result.c_str();
         leg->AddEntry(h4[i],histname_result,"L");
@@ -1057,74 +1061,95 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
     ifstream theory_energy_av("Theory_Christelle/energy_av_THEORY.txt");
     ifstream theory_energy_tot("Theory_Christelle/energy_tot_THEORY.txt");
 
-    float THEORY_ex_energy[20];
-    float THEORY_multiplicity[20], THEORY_energy_av[20], THEORY_energy_tot[20];
+    int nLs = 3;
+    int nArrays = nLs +1; // +1 for energy
+
+    float THEORY_ex_energy[100];
+    float THEORY_multiplicity[nArrays][100], THEORY_energy_av[nArrays][100], THEORY_energy_tot[nArrays][100];
 
     //reading files
-    int numberOfValuesInFile = 6;
+    // int numberOfValuesInFile = 8;
     int i=0;
+    int n_headerlines = 1;
 
+    string line;
 
-    while(i < numberOfValuesInFile) {
-        theory_ex_energy >> THEORY_ex_energy[i];
-        cout << THEORY_ex_energy[i] << endl;
-      i++;
-    }
-
-    i=0;
-    while(i < numberOfValuesInFile){
-        theory_multiplicity >> THEORY_multiplicity[i];
-        cout << THEORY_multiplicity[i] << endl;
-      i++;
-    }
-
+    // while(i < numberOfValuesInFile) {
+    // 	if (i>n_headerlines){j=i-n_headerlines;}
+    // 	else j=0;
+    //     theory_ex_energy >> THEORY_ex_energy[j];
+    //   i++;
+    // }
 
     i=0;
-    while(i < numberOfValuesInFile){
-        theory_energy_av >> THEORY_energy_av[i];
-        THEORY_energy_av[i] *= 1000; // Multiply by 1000 to get keV from MeV
+
+    while(getline(theory_multiplicity, line)) 
+    {
+        //the following line trims white space from the beginning of the string
+        //line.erase(line.begin(), find_if(line.begin(), line.end(), not1(ptr_fun<int, int>(isspace)))); 
+
+        if(line[0] == '#') continue;
+
+        stringstream(line) //>> dummy
+        					>> THEORY_multiplicity[0][i] 
+                         	>> THEORY_multiplicity[1][i] 
+                         	>> THEORY_multiplicity[2][i]
+                         	>> THEORY_multiplicity[3][i];
+        // cout << THEORY_multiplicity[0][i] << " " << THEORY_multiplicity[1][i]  << endl;
+        THEORY_multiplicity[0][i] *= 1000; // Multiply by 1000 to get keV from MeV
       i++;
     }
+    int numberOfValuesMultiplicity = i;
 
+    i=0;
+    while(getline(theory_energy_av,line)){
+
+    	if(line[0] == '#') continue;
+
+        stringstream(line) //>> dummy
+        				 >> THEORY_energy_av[0][i] 
+                         >> THEORY_energy_av[1][i] 
+                         >> THEORY_energy_av[2][i]
+                         >> THEORY_energy_av[3][i];
+        THEORY_energy_av[0][i] *= 1000; // Multiply by 1000 to get keV from MeV
+        THEORY_energy_av[1][i] *= 1000; // Multiply by 1000 to get keV from MeV
+        THEORY_energy_av[2][i] *= 1000; // Multiply by 1000 to get keV from MeV
+        THEORY_energy_av[3][i] *= 1000; // Multiply by 1000 to get keV from MeV
+      i++;
+    }
+    int numberOfValuesEnergyAv = i;
+    // for(i=0;i<numberOfValuesInFile;i++){
+    // 	cout<< THEORY_multiplicity[0][i] << " " << THEORY_multiplicity[1][i] << endl;
+    // }
     
     i=0;
+    while(getline(theory_energy_tot,line)){
+
+    	if(line[0] == '#') continue;
+        stringstream(line) //>> dummy
+        				 >> THEORY_energy_tot[0][i] 
+                         >> THEORY_energy_tot[1][i] 
+                         >> THEORY_energy_tot[2][i]
+                         >> THEORY_energy_tot[3][i];
+       THEORY_energy_tot[0][i] *= 1000; // Multiply by 1000 to get keV from MeV
+       THEORY_energy_tot[1][i] *= 1000; // Multiply by 1000 to get keV from MeV
+       THEORY_energy_tot[2][i] *= 1000; // Multiply by 1000 to get keV from MeV
+       THEORY_energy_tot[3][i] *= 1000; // Multiply by 1000 to get keV from MeV
+      i++;
+    }
+    int numberOfValuesEnergyTot = i;
+
+TGraph *theory_multiplicity_graph[nLs];
+TGraph *theory_energy_av_graph[nLs];
+TGraph *theory_energy_tot_graph[nLs];
+
+    for(i=0;i<nLs;i++){
+    theory_multiplicity_graph[i] = new TGraph(numberOfValuesMultiplicity,THEORY_multiplicity[0],THEORY_multiplicity[i+1]);
+    theory_energy_av_graph[i] = new TGraph(numberOfValuesEnergyAv,       THEORY_energy_av[0],   THEORY_energy_av[i+1]);
+    theory_energy_tot_graph[i] = new TGraph(numberOfValuesEnergyTot,     THEORY_energy_tot[0],  THEORY_energy_tot[i+1]);
+    }
     
-    while(i < numberOfValuesInFile){
-        theory_energy_tot >> THEORY_energy_tot[i];
-        THEORY_energy_tot[i] *= 1000; // Multiply by 1000 to get keV from MeV
-      i++;
-    }
-
-    //define graphs
-    TGraph *theory_multiplicity_graph = new TGraph(numberOfValuesInFile,THEORY_ex_energy,THEORY_multiplicity);
-    TGraph *theory_energy_av_graph = new TGraph(numberOfValuesInFile,THEORY_ex_energy,THEORY_energy_av);
-    TGraph *theory_energy_tot_graph = new TGraph(numberOfValuesInFile,THEORY_ex_energy,THEORY_energy_tot);
-
-    ////////////////////////////////////////////////////////////////////////
-
-
-    ////////////////////////////////////////////////////////////////////////
-    //experimental errors due to uncertainty in the relative neutron contribution
-    ifstream E_gamma_tot_errors("Average/E_gamma_tot_errors.txt");
-    ifstream Multiplicities_errors("Average/Multiplicities_errors.txt");
-
-    float TotalEnergyErr_neutrons[20];
-    float multiplicityErr_neutrons[20];
-
-    //reading files
-    int numberOfValuesInFile = 8;
-    int i=0;
-    while(i < numberOfValuesInFile) {
-        E_gamma_tot_errors >> TotalEnergyErr_neutrons[i];
-      i++;
-    }
-
-    int numberOfValuesInFile = 8;
-    int i=0;
-    while(i < numberOfValuesInFile) {
-        Multiplicities_errors >> multiplicityErr_neutrons[i];
-      i++;
-    }
+    
 
 ///////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////
@@ -1133,11 +1158,16 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
    Double_t w = 600;
    Double_t h = 800;
     TCanvas *c2 = new TCanvas("c2","Fission Gamma Multiplicities",w,h);
+    c2.SetRightMargin(0.01);
+    c2.SetBottomMargin(0.15);
+    c2.SetLeftMargin(0.12);
     c2->Divide(1,3,0,0);
 
-    c2.SetLeftMargin(0.14);
-    c2.SetRightMargin(0.5);
-    c2.SetBottomMargin(0.2);
+    
+
+    c2_1.SetRightMargin(0.008);
+	c2_2.SetRightMargin(0.008);
+    c2_3.SetRightMargin(0.008);
     
     c2.cd(3);
     // c2.SetLogy();
@@ -1158,18 +1188,18 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
     h_multi_1->SetMarkerStyle(21);
     
     h_multi_1.GetXaxis().CenterTitle();
-    h_multi_1.GetXaxis().SetTitle("Excitation energy E (keV)");
-    h_multi_1.GetXaxis().SetTitleSize(0.06);
+    h_multi_1.GetXaxis().SetTitle("Excitation energy E_{x} [keV]");
+    h_multi_1.GetXaxis().SetTitleSize(0.07);
     h_multi_1.GetYaxis().CenterTitle();
-    h_multi_1.GetYaxis().SetTitleOffset(0.7);
-    h_multi_1.GetXaxis().SetTitleOffset(0.8);
+    h_multi_1.GetXaxis().SetTitleOffset(1);
     h_multi_1.GetYaxis().SetTitle("Multiplicity");
-    h_multi_1.GetYaxis().SetTitleSize(0.07);
+    h_multi_1.GetYaxis().SetTitleSize(0.069);
+    h_multi_1.GetYaxis().SetTitleOffset(0.85);
     h_multi_1.GetYaxis().SetLabelSize(0.06);
     h_multi_1.GetXaxis().SetLabelSize(0.06);
     double ymin = 5.;
-    h_multi_1.GetYaxis().SetRangeUser(5,11.9);
-    // h_multi_1.GetXaxis().SetRangeUser(5,9.9);
+    h_multi_1.GetYaxis().SetRangeUser(5.1,10.7);
+    // h_multi_1.GetXaxis().SetRangeUser(4.6e3,9.9e3);
 
     // h1cp->Scale(2e-4);    // the scaling here is arbitrary!
     // h1cp->Draw("same"); 
@@ -1178,14 +1208,25 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
     // hdiv->SetLineColor(kBlue);
     // hdiv->Draw("same");
     h_multi_1->Draw("AP");
-    theory_multiplicity_graph->SetMarkerStyle(21);
-    theory_multiplicity_graph->SetLineStyle(2);
-    theory_multiplicity_graph->SetMarkerSize(0.8); 
-    theory_multiplicity_graph->SetLineWidth(2.8); 
-    theory_multiplicity_graph->SetMarkerColor(kBlue); 
-    theory_multiplicity_graph->SetLineColor(kBlue+2);
-    theory_multiplicity_graph->Draw("P");
-    theory_multiplicity_graph->Draw("L");
+    
+    int colour=0;
+    int colour0 = 4;
+    int colour1 = 8;
+    int colour2 = 28;
+
+    for(i=0;i<nLs;i++){
+    	     if(i==0) {colour = colour0;}
+    	else if(i==1) {colour = colour1;}
+    	else if(i==2) {colour = colour2;}
+    theory_multiplicity_graph[i]->SetMarkerStyle(21);
+    theory_multiplicity_graph[i]->SetLineStyle(2);
+    theory_multiplicity_graph[i]->SetMarkerSize(0.8); 
+    theory_multiplicity_graph[i]->SetLineWidth(2.8); 
+    theory_multiplicity_graph[i]->SetMarkerColor(colour); 
+    theory_multiplicity_graph[i]->SetLineColor(colour);
+    theory_multiplicity_graph[i]->Draw("P");
+    theory_multiplicity_graph[i]->Draw("L");
+    }
 
    grlow->SetLineStyle(4);
    grlow->Draw("same");
@@ -1193,6 +1234,18 @@ TGraphAsymmErrors *Verbinski = new TGraphAsymmErrors(nPoints,energy,spectrum,0,0
    grup->SetLineStyle(4);
    grup->Draw("same");
 
+
+   TGraphErrors *OtherExp = new TGraphErrors(1);
+   // OtherExp->SetFillColor(23);
+   OtherExp->SetMarkerColor(1);
+   OtherExp->SetMarkerStyle(23);
+   OtherExp->SetMarkerSize(1);
+   double y_value = 7.24;
+   double y_err   = 0.7;
+   //   (PointNumber , X , Y)
+   OtherExp->SetPoint     (0,6540,y_value);
+   OtherExp->SetPointError(0, 0, y_err);
+   OtherExp->Draw("P");
     // theory_multiplicity_graph->SetMarkerColor(kBlue);
     
 
@@ -1252,17 +1305,18 @@ c2.cd(2);
    // TGraphErrors *gr = new TGraphErrors(8, meanEnergies, AverageEnergy, 0, AverageEnergyErr);
     // TGraph *gr = new TGraph(nIntervals, meanEnergies, AverageEnergy);    
    // TGraphErrors *gr = new TGraphErrors(8, meanEnergies, AverageEnergy, 0, 0);    
-   gr.GetYaxis().SetRangeUser(705,1380);
-   gr->SetTitle("Sunniva er hot");
-   gr->GetYaxis().CenterTitle();
-   gr->GetYaxis().SetTitleOffset(0.7);
-   gr->GetYaxis().SetTitle("Average #gamma-energy (keV)");
-   gr->GetYaxis().SetTitleSize(0.07);
-    gr.GetYaxis().SetLabelSize(0.06);
-    gr.GetXaxis().SetLabelSize(0.06);
-   gr->SetMarkerColor(kRed);
-   gr->SetMarkerStyle(21);
-   gr->Draw("AP");
+	gr.GetYaxis().SetRangeUser(705,1.47e3);
+	gr->SetTitle("Sunniva er hot");
+	gr->GetYaxis().CenterTitle();
+
+	gr->GetYaxis().SetTitle("Average #gamma-energy [keV]");
+	gr->GetYaxis().SetTitleSize(0.078);
+	gr->GetYaxis().SetTitleOffset(0.73);
+	gr.GetYaxis().SetLabelSize(0.06);
+	gr.GetXaxis().SetLabelSize(0.06);
+	gr->SetMarkerColor(kRed);
+	gr->SetMarkerStyle(21);
+	gr->Draw("AP");
 
    grlow->SetLineStyle(4);
    grlow->Draw("same");
@@ -1270,15 +1324,31 @@ c2.cd(2);
    grup->SetLineStyle(4);
    grup->Draw("same");
 
+    for(i=0;i<nLs;i++){
+    	     if(i==0) {colour = colour0;}
+    	else if(i==1) {colour = colour1;}
+    	else if(i==2) {colour = colour2;}
+    theory_energy_av_graph[i]->SetMarkerStyle(21);
+    theory_energy_av_graph[i]->SetLineStyle(2);
+    theory_energy_av_graph[i]->SetMarkerSize(0.8); 
+    theory_energy_av_graph[i]->SetLineWidth(2.8); 
+    theory_energy_av_graph[i]->SetMarkerColor(colour); 
+    theory_energy_av_graph[i]->SetLineColor(colour);
+    theory_energy_av_graph[i]->Draw("P");
+    theory_energy_av_graph[i]->Draw("L");
+    }
 
-    theory_energy_av_graph->SetMarkerStyle(21);
-    theory_energy_av_graph->SetLineStyle(2);
-    theory_energy_av_graph->SetMarkerSize(0.8); 
-    theory_energy_av_graph->SetLineWidth(2.8); 
-    theory_energy_av_graph->SetMarkerColor(kBlue); 
-    theory_energy_av_graph->SetLineColor(kBlue+2);
-     theory_energy_av_graph->Draw("P");
-    theory_energy_av_graph->Draw("L");
+   TGraphErrors *OtherExp = new TGraphErrors(1);
+   // OtherExp->SetFillColor(23);
+   OtherExp->SetMarkerColor(1);
+   OtherExp->SetMarkerStyle(23);
+   OtherExp->SetMarkerSize(1);
+   double y_value = 970;
+   double y_err   = 50;
+   //   (PointNumber , X , Y)
+   OtherExp->SetPoint     (0,6540,y_value);
+   OtherExp->SetPointError(0, 0, y_err);
+   OtherExp->Draw("P");
 
     ////////////
     TLine *line1 = new TLine(FissBar,0,FissBar,1e5);
@@ -1310,17 +1380,17 @@ c2.cd(1);
    TGraph *grup = new TGraph(nIntervals,  meanEnergies, TotalEnergyUp);
 
    // TGraph *gr = new TGraph(nIntervals, meanEnergies, TotalEnergy); //errors med hensyn på relative neutron contribution
-   gr.GetYaxis().SetRangeUser(5.01e3,9.9e3);
-   gr->SetTitle("Sunniva er hot");
-   gr->GetYaxis().CenterTitle();
-   gr->GetYaxis().SetTitleOffset(0.7);
-   gr->GetYaxis().SetTitle("Total   #gamma-energy (keV)");
-   gr->GetYaxis().SetTitleSize(0.07);
-       gr.GetYaxis().SetLabelSize(0.06);
-    gr.GetXaxis().SetLabelSize(0.06);
-   gr->SetMarkerColor(kRed);
-   gr->SetMarkerStyle(21);
-   gr->Draw("AP");
+	gr.GetYaxis().SetRangeUser(5.01e3,10.5e3);
+	gr->SetTitle("Sunniva er hot");
+	gr->GetYaxis().CenterTitle();
+	gr->GetYaxis().SetTitle("Total #gamma-energy [keV]");
+	gr->GetYaxis().SetTitleSize(0.078);
+	gr->GetYaxis().SetTitleOffset(0.73);
+	gr.GetYaxis().SetLabelSize(0.06);
+	gr.GetXaxis().SetLabelSize(0.06);
+	gr->SetMarkerColor(kRed);
+	gr->SetMarkerStyle(21);
+	gr->Draw("AP");
 
    grlow->SetLineStyle(4);
    grlow->Draw("same");
@@ -1328,24 +1398,44 @@ c2.cd(1);
    grup->SetLineStyle(4);
    grup->Draw("same");
 
-   theory_energy_tot_graph->SetMarkerStyle(21);
-   theory_energy_tot_graph->SetLineStyle(2);
-    theory_energy_tot_graph->SetMarkerSize(0.8); 
-    theory_energy_tot_graph->SetLineWidth(2.8); 
-    theory_energy_tot_graph->SetMarkerColor(kBlue); 
-    theory_energy_tot_graph->SetLineColor(kBlue+2);
-    theory_energy_tot_graph->Draw("P");
-    theory_energy_tot_graph->Draw("L");
+    for(i=0;i<nLs;i++){
+    	     if(i==0) {colour = colour0;}
+    	else if(i==1) {colour = colour1;}
+    	else if(i==2) {colour = colour2;}
+   theory_energy_tot_graph[i]->SetMarkerStyle(21);
+   theory_energy_tot_graph[i]->SetLineStyle(2);
+   theory_energy_tot_graph[i]->SetMarkerSize(0.8); 
+   theory_energy_tot_graph[i]->SetLineWidth(2.8); 
+   theory_energy_tot_graph[i]->SetMarkerColor(colour); 
+   theory_energy_tot_graph[i]->SetLineColor(colour);
+   theory_energy_tot_graph[i]->Draw("P");
+   theory_energy_tot_graph[i]->Draw("L");
+   }
 
 
-    TLegend *leg = new TLegend(0.64,0.10,0.99,0.37);
+   TGraphErrors *OtherExp = new TGraphErrors(1);
+   // OtherExp->SetFillColor(23);
+   OtherExp->SetMarkerColor(1);
+   OtherExp->SetMarkerStyle(23);
+   OtherExp->SetMarkerSize(1);
+   double y_value = 6510;
+   double y_err   = 300;
+   //   (PointNumber , X , Y)
+   OtherExp->SetPoint     (0,6540,y_value);
+   OtherExp->SetPointError(0, 0, y_err);
+   OtherExp->Draw("P");
+
+    TLegend *leg = new TLegend(0.152,0.582,0.463,0.951);
     leg.SetBorderSize(0);
     leg.SetFillStyle(0);
-    leg.SetBorderSize(2);
-    leg->SetTextColor(kRed);
+    // leg.SetBorderSize(2);
+    leg->SetTextColor(kBlack);
     leg->SetTextSize(0.07);
-    leg->AddEntry(gr,"Experimental data","ep");
-    leg->AddEntry(theory_energy_tot_graph,"GEF","lp");
+    leg->AddEntry(gr,"Present exp.","ep");
+    leg->AddEntry(theory_energy_tot_graph[0],"GEF L=0","lp");
+    leg->AddEntry(theory_energy_tot_graph[1],"GEF L=4","lp");
+    leg->AddEntry(theory_energy_tot_graph[2],"GEF L=10","lp");
+    leg->AddEntry(OtherExp,"Verbinski (1973)","ep");
     // leg->AddEntry(grlow,"Error band (incl. systematic)","l");
     leg->Draw();
 
@@ -1532,30 +1622,34 @@ TGraph *GEF = new TGraph(nPoints,energy1,spectrum1);
 //////////////////////////////////////////
 // Verbinski and a spectrum at around S_n
 
-    TCanvas *c5 = new TCanvas("c5","Verbinski vs Sn",900,420);
+    TCanvas *c5 = new TCanvas("c5","Verbinski vs Sn",900,600);
 
     c5->cd(1);
     
     c5->SetLogy();
 
+    c5.SetLeftMargin(0.1);
+    c5.SetRightMargin(0.01);
+    c5.SetBottomMargin(0.15);
 
 
     int nSelect=3;
 
     h4[nSelect].GetXaxis().CenterTitle();
-    h4[nSelect].GetXaxis().SetTitle("E(NaI) [keV]");
+    h4[nSelect].GetXaxis().SetTitle("E_{#gamma} [keV]");
     h4[nSelect].GetYaxis().CenterTitle();
-    h4[nSelect].GetXaxis().SetTitleOffset(0.9);
-    h4[nSelect].GetYaxis().SetTitleOffset(1);
+    h4[nSelect].GetXaxis().SetTitleSize(0.06);
+    h4[nSelect].GetXaxis().SetTitleOffset(1.1);
+    // h4[nSelect].GetYaxis().SetTitleOffset(1);
 //    h2[0].GetXaxis().SetLabelOffset(1.4);
 
-    h4[nSelect].GetYaxis().SetTitle("Counts/fission*MeV");
-    h4[nSelect].GetXaxis().SetTitleSize(0.053);
-    h4[nSelect].GetYaxis().SetTitleSize(0.053);
+    h4[nSelect].GetYaxis().SetTitle("Photons/Fission*MeV");
+    h4[nSelect].GetYaxis().SetTitleSize(0.06);
+    h4[nSelect].GetYaxis().SetTitleOffset(.8);
     h4[nSelect].GetXaxis().SetLabelSize(0.053);
     h4[nSelect].GetYaxis().SetLabelSize(0.053);
-    h4[nSelect].GetXaxis().SetRangeUser(0,15e3);
-    h4[nSelect].GetYaxis().SetRangeUser(0.0001,10);
+    h4[nSelect].GetXaxis().SetRangeUser(0,13.8e3);
+    h4[nSelect].GetYaxis().SetRangeUser(0.00017,10);
     h4[nSelect].SetLineColor(kRed);
     // h4[0].SetLineWidth(2);
     gStyle->SetOptStat(0);
@@ -1584,7 +1678,7 @@ TGraph *GEF = new TGraph(nPoints,energy1,spectrum1);
 
 
     
-    TLegend *leg = new TLegend(0.566964,0.719388  ,0.81,0.892);
+    TLegend *leg = new TLegend(0.566964,0.719388  ,0.90,0.892);
     leg.SetBorderSize(0);
     leg.SetFillStyle(1);
 
@@ -1626,9 +1720,14 @@ TGraph *GEF = new TGraph(nPoints,energy1,spectrum1);
   // fclose(out_file);
   // cout << "Output complete" << endl;
 
-// cout << "\n" << endl;
-// for(int i=0;i<nIntervals;i++){
-//     cout << AverageEnergy[i] << "\t" << TotalEnergy[i] << endl;
-// }
+cout << "\n" << endl;
+cout << "meanEnergies[i]" << "\t" << "TotalEnergy[i]" << "\t" << "stat. unc." << "\t" << "Unc.(incl. systematic)" << "\t" << "AverageEnergy[i]"       << "\t" << "stat. unc." << "\t" << "Unc.(incl. systematic)"             << "\t" << "multiplicity[i]" << "\t" << "stat. unc." << "\t" << "Unc.(incl. systematic)" << endl;
+cout << "keV" << "\t" << "keV" << "\t" << "keV" << "\t" "keV" << "\t" "keV" << "\t" << "keV"       << "\t" << "keV"             << "\t" << "ph/fiss" << "\t" << "ph/fiss" << "\t" << "ph/fiss" << endl;
+for(int i=0;i<nIntervals;i++){
+    cout << meanEnergies[i] << "\t" << 
+    TotalEnergy[i] << "\t"      << TotalEnergyErr[i] << "\t"          << TotalEnergy[i]-TotalEnergyLow[i] << "\t" 
+    << AverageEnergy[i] << "\t" << AverageEnergyErr[i] << "\t"        << AverageEnergy[i]-AverageEnergyLow[i] << "\t" 
+    << multiplicity[i] << "\t"  << multiplicityErr[i]  << "\t"        << multiplicity[i]-multiplicityLow[i] <<   endl;
+}
 
 }
